@@ -1,11 +1,12 @@
 import sqlite3
 import pandas as pd
-import pymongo
+# import pymongo
+from pymongo import mongo_client
 import math
 
 CHUNK_SIZE = 1000000
 
-client = pymongo.MongoClient("mongodb://localhost:27017/", username="root", password="example")
+client = mongo_client.MongoClient("mongodb://localhost:27017/", username="root", password="example")
 db = client["spotify"] # Creating db in mongo
 
 conn = sqlite3.connect("spotify.sqlite", isolation_level=None, detect_types=sqlite3.PARSE_COLNAMES)
@@ -48,6 +49,6 @@ zbrcniGa("r_albums_artists", "SELECT * FROM r_albums_artists")
 zbrcniGa("r_albums_tracks", "SELECT * FROM r_albums_tracks")
 zbrcniGa("r_artist_genre", "SELECT * FROM r_artist_genre")
 zbrcniGa("r_track_artist", "SELECT * FROM r_track_artist")
-zbrcniGa("tracks", "SELECT id, duration, explicit, audio_feature_id, name, popularity FROM tracks")
+zbrcniGa("tracks", "SELECT id, duration, explicit, name, popularity FROM tracks")
 
 conn.close()
