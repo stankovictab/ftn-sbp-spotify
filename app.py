@@ -22,29 +22,31 @@ class ArtistsParser:
 		del(artists)
 			
 def get_artist(row) -> dict:
-	genres_dict_str = row['genres']
+	genres_str = row['genres']
 
-	if genres_dict_str[0] == '"':
+	if genres_str[0] == '[':
 		# Ima vise
-		genres_dict_array = genres_dict_str.split(',')
-		genres_dict_array = [genre.strip('"') for genre in genres_dict_array]
-		genres_dict_array = [genre.strip('[') for genre in genres_dict_array]
-		genres_dict_array = [genre.strip(']') for genre in genres_dict_array]
-		genres_dict_array = [genre.strip("'") for genre in genres_dict_array]
-	elif genres_dict_str[1] == ']': 
+		genres_str = genres_str.replace('[', '')
+		genres_str = genres_str.replace(']', '')
+		genres_array = genres_str.split(',')
+		genres_array = [genre.strip(' ') for genre in genres_array]
+		genres_array = [genre.strip('"') for genre in genres_array]
+		genres_array = [genre.strip("'") for genre in genres_array]
+		genres_array = [genre.strip('"') for genre in genres_array]
+	elif genres_str[1] == ']': 
 		# Nema ni jedan
-		genres_dict_array = []
+		genres_array = []
 	else:
-		genres_dict_str = genres_dict_str.strip('[')
-		genres_dict_str = genres_dict_str.strip(']')
-		genres_dict_str = genres_dict_str.strip("'")
-		genres_dict_array = [genres_dict_str]
+		genres_str = genres_str.strip('[')
+		genres_str = genres_str.strip(']')
+		genres_str = genres_str.strip("'")
+		genres_array = [genres_str]
 	# TODO: Genres
 
 	return {
 		'_id': row['id'],
 		'followers': row['followers'],
-		'genres': row['genres'], # TODO: Need to parse this as a list?
+		'genres': genres_array, # TODO: Need to parse this as a list?
 		'name': row['name'],
 		'popularity': int(row['popularity'])
 	}
@@ -72,7 +74,6 @@ class TracksParser:
 def get_track(row) -> dict:
 	artists_name_str = row['artists']
 	artists_id_str = row['id_artists']
-	# print("Beginning artist_name_str: ", artists_name_str)
 
 	if artists_name_str[0] == '[':
 		# Ima vise
@@ -103,37 +104,15 @@ def get_track(row) -> dict:
 		artists_id_str = artists_id_str.strip("'")
 		artists_id_array = [artists_id_str]
 
-	artists_dict = {}
-
-	# i = 0
-	# for artist in enumerate(artists_name_array):
-	# 	artists_dict[str(i)] = {"id": artists_id_array[i], "name": artist}
-	# 	i += 1
-
-	# print("artists_name_array: ", artists_name_array)
-	# print("artists_id_array: ", artists_id_array)
-
-	# print("Len of artists_name_array: ", len(artists_name_array))
-	# print("Len of artists_id_array: ", len(artists_id_array))
+	# artists_dict = {}
+	artists_array = []
 
 	while len(artists_name_array) > len(artists_id_array):
 		artists_id_array.append(artists_id_array[0])
 
 	for i in range(len(artists_name_array)):
-		# print("str(i): ", str(i))
-		artists_dict[str(i)] = {"id": artists_id_array[i], "name": artists_name_array[i]}
-		# artists_dict[str(i)]["id"] = artists_id_array[i]
-		# artists_dict[str(i)]["name"] = artists_name_array[i]
-	
-	# print(artists_dict)
-	# print("-------")
-
-	# artists: {
-	# 	0 : {
-	# 		id: "aowidjaowdji",
-	# 		name: "araor"
-	# 	}
-	# }
+		# artists_dict[str(i)] = {"id": artists_id_array[i], "name": artists_name_array[i]}
+		artists_array.append({"id": artists_id_array[i], "name": artists_name_array[i]})
 
 	return {
 		'_id': row['id'],
@@ -141,7 +120,7 @@ def get_track(row) -> dict:
 		'popularity': int(row['popularity']),
 		'duration_ms': int(row['duration_ms']),
 		'explicit': int(row['explicit']),
-		'artists': artists_dict,
+		'artists': artists_array,
 		#  'id_artists': row['id_artists'], # TODO: Need to parse this as a list?
 		'release_date': row['release_date'],
 		'danceability': float(row['danceability']),
