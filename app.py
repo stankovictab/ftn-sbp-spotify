@@ -1,4 +1,3 @@
-from audioop import tostereo
 from pymongo import mongo_client
 import csv
 
@@ -121,7 +120,6 @@ def get_track(row) -> dict:
 		'duration_ms': int(row['duration_ms']),
 		'explicit': int(row['explicit']),
 		'artists': artists_array,
-		#  'id_artists': row['id_artists'], # TODO: Need to parse this as a list?
 		'release_date': row['release_date'],
 		'danceability': float(row['danceability']),
 		'energy': float(row['energy']),
