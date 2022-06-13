@@ -78,7 +78,7 @@ db.albums.aggregate([
 ], {allowDiskUse: true})
 ```
 - 2 - Iz koje godine je album sa najviše akustičnih pesama?\
-Time: `?s`
+Time: `826s`
 ```js
 // db.r_albums_tracks.createIndex({"album_id": 1})
 // db.audio_features.createIndex({"id": 1})
@@ -194,6 +194,41 @@ db.artists.aggregate([
     {$sort: {"num_songs": -1}}
 ], {allowDiskUse: true})
 ```
+- 5 - Odrediti umetnike koji su najviše svojih pesama snimali uživo.\
+Time: `?s`
+```js
+// db.r_track_artist.createIndex({"artist_id": 1})
+// db.audio_features.createIndex({"id": 1})
+
+db.r_track_artist.dropIndex({"artist_id": 1})
+db.audio_features.dropIndex({"id": 1})
+
+db.artists.aggregate([
+    {$limit: 100},
+    {$project: {"_id": 0, "id": 1, "name": 1}},
+    {$lookup: {
+        from: 'r_track_artist',
+        localField: 'id', 
+        foreignField: 'artist_id', 
+//         pipeline: [
+//             {$project: {"_id": 0, "track_id": 1}}
+//         ],
+        as: 'tracks'}},
+    {$unwind: "$tracks"},
+    {$lookup: {
+        from: 'audio_features', 
+        localField: 'tracks.track_id', 
+        foreignField: 'id', 
+//         pipeline: [
+//             {$project: {"_id": 0, "duration": 1}}
+//         ], 
+        as: 'features'}},
+    {$unwind: "$features"},
+    {$match: {"features.liveness": {$gt: 0.5}}},
+    {$group: {_id: {artist_name: "$name"}, num_live_songs: {$sum: 1}}},
+    {$sort: {"num_live_songs": -1}},
+], {allowDiskUse: true})
+```
 
 
 ### Igor
@@ -292,5 +327,75 @@ db.tracks.aggregate([
     
     {$sort: {"avg_danceability": -1}}
     // ...
+], {allowDiskUse: true})
+```
+- 4 - Koji albumi u proseku imaju najduže pesme?\
+Time: `782s`
+```js
+db.r_albums_tracks.createIndex({"album_id": 1})
+db.tracks.createIndex({"id": 1})
+
+db.r_albums_tracks.dropIndex({"album_id": 1})
+db.tracks.dropIndex({"id": 1})
+
+db.albums.aggregate([
+    {$limit: 100},
+    {$project: {"_id": 0, "id": 1, "name": 1}},
+    {$lookup: {
+        from: 'r_albums_tracks',
+        localField: 'id', 
+        foreignField: 'album_id', 
+        pipeline: [
+            {$project: {"_id": 0, "track_id": 1}}
+        ],
+        as: 'tracks'}},
+    {$unwind: "$tracks"},
+    {$lookup: {
+        from: 'tracks', 
+        localField: 'tracks.track_id', 
+        foreignField: 'id', 
+        pipeline: [
+            {$project: {"_id": 0, "duration": 1}}
+        ], 
+        as: 'track_info'}},
+    {$unwind: "$track_info"},
+    {$group: {_id: {album_name: "$name"}, avg_track_duration: {$avg: "$track_info.duration"}}},
+    {$sort: {"avg_track_duration": -1}},
+], {allowDiskUse: true})
+```
+
+- 5 - Odrediti albume sa najenergičnijim pesmama.\
+Time: `?s`
+```js
+// db.r_albums_tracks.createIndex({"album_id": 1})
+// db.audio_features.createIndex({"id": 1})
+
+db.r_albums_tracks.dropIndex({"album_id": 1})
+db.audio_features.dropIndex({"id": 1})
+
+db.albums.aggregate([
+    {$limit: 100},
+    {$project: {"_id": 0, "id": 1, "name": 1}},
+    {$lookup: {
+        from: 'r_albums_tracks',
+        localField: 'id', 
+        foreignField: 'album_id', 
+//         pipeline: [
+//             {$project: {"_id": 0, "track_id": 1}}
+//         ],
+        as: 'tracks'}},
+    {$unwind: "$tracks"},
+    {$lookup: {
+        from: 'audio_features', 
+        localField: 'tracks.track_id', 
+        foreignField: 'id', 
+//         pipeline: [
+//             {$project: {"_id": 0, "duration": 1}}
+//         ], 
+        as: 'features'}},
+    {$unwind: "$features"},
+//     {$match: {"features.liveness": {$gt: 0.5}}},
+    {$group: {_id: {album_name: "$name"}, avg_energy: {$avg: "$features.energy"}}},
+    {$sort: {"avg_energy": -1}},
 ], {allowDiskUse: true})
 ```
