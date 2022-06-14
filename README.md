@@ -398,7 +398,6 @@ db.albums.aggregate([
 //         ], 
         as: 'features'}},
     {$unwind: "$features"},
-//     {$match: {"features.liveness": {$gt: 0.5}}},
     {$group: {_id: {album_name: "$name"}, avg_energy: {$avg: "$features.energy"}}},
     {$sort: {"avg_energy": -1}},
 ], {allowDiskUse: true})
@@ -590,14 +589,16 @@ db.artists2.aggregate([
 ```
 
 - 5 :\
-Optimizacija bez indeksa - Time: `9.550s`.\
-Optimizacija sa indeksima - Time: `0.003s`.
+Optimizacija bez indeksa - Time: `98.8s`.\
+Optimizacija sa indeksima - Time: `0.127s`.
 
 ```js
 db.tracks2.createIndex({"artists.artist_id": 1})
 
+db.tracks2.dropIndex({"artists.artist_id": 1})
+
 db.artists2.aggregate([
-    {$limit: 10},
+    {$limit: 100}, // Change over to 10 for testing
     {$project: {"_id": 0, "genres": 0}},
     {$lookup: {
         from: 'tracks2', 
@@ -611,5 +612,115 @@ db.artists2.aggregate([
     {$match: {"tracks.audio_features.liveness": {$gt: 0.5}}},
     {$group: {_id: {artist_name: "$name"}, num_live_songs: {$sum: 1}}},
     {$sort: {"num_live_songs": -1}},
+], {allowDiskUse: true})
+```
+
+### Jaki
+
+- 1 :\
+Optimizacija bez indeksa - Time: `0.03s`.\
+Optimizacija sa indeksima - Time: `0.03s`.
+``` js
+db.artists2.aggregate([
+    {$limit: 100},
+    {$unwind: "$genres"}, // Split an artist with many genres into many of the same artist with 1 genre
+    {$group: {_id: "$genres.genre_id", num_followers: {$sum: "$followers"}}},
+    {$sort: {"num_followers": -1}}
+], {allowDiskUse: true})
+```
+
+- 2 :\
+Optimizacija bez indeksa - Time: `96.2s`.\
+Optimizacija sa indeksima - Time: `0.097s`.
+```js
+db.tracks2.createIndex({"artists.artist_id": 1})
+
+db.tracks2.dropIndex({"artists.artist_id": 1})
+
+db.artists2.aggregate([
+    {$limit: 100},
+    {$lookup: {
+        from: 'tracks2', 
+        localField: 'id', 
+        foreignField: 'artists.artist_id', 
+        pipeline: [
+            {$project: {"_id": 0, "explicit": 1}}
+        ], 
+        as: 'tracks'}},
+    {$project: {"_id": 0, "name": 1, "tracks": 1}},
+    {$unwind: "$tracks"},
+    {$group: {_id: "$name", num_explicits: {$sum: "$tracks.explicit"}}},
+    {$sort: {"num_explicits": -1}}
+], {allowDiskUse: true})
+```
+
+- 3 :\
+Optimizacija bez indeksa - Time: `7.92s`.\
+Optimizacija sa indeksima - Time: `0.028s`.
+```js
+db.artists2.createIndex({"id":1})
+
+db.artists2.dropIndex({"id":1})
+
+db.tracks2.aggregate([
+    {$limit: 100},
+    {
+        $lookup: {
+            from: 'artists2',
+            localField: 'artists.artist_id',
+            foreignField: 'id',
+            pipeline: [
+                {$project: {"_id": 0, "name": 1}}
+            ],
+            as: 'artists_info'
+        }
+    },
+    {$project: {"_id": 0, "name": 1, "audio_features": 1, "artists_info": 1}},
+    {$unwind: "$artists_info"},
+    {$group: {_id: {artist_id: "$artists_info.name"}, avg_danceability: {$avg: "$audio_features.danceability"}}},
+    {$sort: {"avg_danceability": -1}}
+], {allowDiskUse: true})
+```
+- 4 :\
+Optimizacija bez indeksa - Time: `56.3s`.\
+Optimizacija sa indeksima - Time: `0.049s`.
+```js
+db.tracks2.createIndex({"id": 1})
+
+db.tracks2.dropIndex({"id": 1})
+
+db.albums2.aggregate([
+    {$limit: 100},
+    {$lookup: {
+        from: 'tracks2',
+        localField: 'tracks.track_id', 
+        foreignField: 'id', 
+        pipeline: [
+            {$project: {"_id": 0, "name": 1, "audio_features": 1}}
+        ],
+        as: 'tracks'}},
+    {$unwind: "$tracks"},    
+    {$group: {_id: {album_name: "$name"}, avg_track_duration: {$avg: "$tracks.audio_features.duration"}}},
+    {$sort: {"avg_track_duration": -1}},
+], {allowDiskUse: true})
+```
+- 5 :\
+Optimizacija bez indeksa - Time: `52.8s`.\
+Optimizacija sa indeksima - Time: `0.023s`.
+```js
+db.tracks2.createIndex({"id": 1})
+
+db.tracks2.dropIndex({"id": 1})
+
+db.albums2.aggregate([
+    {$limit: 100},
+    {$lookup: {
+        from: 'tracks2',
+        localField: 'tracks.track_id', 
+        foreignField: 'id',
+        as: 'tracks'}},
+    {$unwind: "$tracks"},
+    {$group: {_id: {album_name: "$name"}, avg_energy: {$avg: "$tracks.audio_features.energy"}}},
+    {$sort: {"avg_energy": -1}},
 ], {allowDiskUse: true})
 ```
