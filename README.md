@@ -536,3 +536,80 @@ db.albums2.aggregate([
        {$sort: {"num_acoustic_tracks": -1}},
 ], {allowDiskUse: true})
 ```
+
+- 3 :\
+Optimizacija bez indeksa - Time: `6.557s`.\
+Optimizacija sa indeksima - Time: `0.010s`.
+
+```js
+db.artists2.createIndex({"id": 1})
+
+db.tracks2.aggregate([
+    {$limit: 100},
+    {$unwind: "$artists"},
+    {
+        $lookup: {
+			from: 'artists2',
+			localField: 'artists.artist_id',
+			foreignField: 'id',
+			as: 'artists_info',
+			pipeline: [
+                {$project: {"_id": 0, "name": 1}}
+            ], 
+        }
+    },
+    {$unwind: "$artists_info"}, // Split a track with many artists into many of the same track with 1 artist
+    {$group: {_id: "$artists_info.name", avg_loudness: {$avg: "$audio_features.loudness"}}},
+    {$sort: {"avg_loudness": -1}}
+], {allowDiskUse: true})
+```
+
+- 4 :\
+Optimizacija bez indeksa - Time: `2.540s`.\
+Optimizacija sa indeksima - Time: `0.003s`.
+
+```js
+db.tracks2.createIndex({"artists.artist_id": 1})
+
+db.artists2.aggregate([
+    { $limit: 100 },
+    {$unwind: "$genres"},
+    {$match: {"genres.genre_id": "rap"}},
+    {$lookup: {
+        from: 'tracks2', 
+        localField: 'id', 
+        foreignField: 'artists.artist_id', 
+        pipeline: [
+            {$project: {"_id": 0, "id": 1}}
+        ], 
+        as: 'tracks'}},
+    {$unwind: "$tracks"},
+    {$group: {_id: {name: "$name", genre: "$genres.genre_id"}, num_songs: {$sum: 1}}},
+    {$sort: {"num_songs": -1}}
+], {allowDiskUse: true})
+```
+
+- 5 :\
+Optimizacija bez indeksa - Time: `9.550s`.\
+Optimizacija sa indeksima - Time: `0.003s`.
+
+```js
+db.tracks2.createIndex({"artists.artist_id": 1})
+
+db.artists2.aggregate([
+    {$limit: 10},
+    {$project: {"_id": 0, "genres": 0}},
+    {$lookup: {
+        from: 'tracks2', 
+        localField: 'id', 
+        foreignField: 'artists.artist_id', 
+        pipeline: [
+            {$project: {"_id": 0, "audio_features.liveness": 1}}
+        ], 
+        as: 'tracks'}},
+    {$unwind: "$tracks"},
+    {$match: {"tracks.audio_features.liveness": {$gt: 0.5}}},
+    {$group: {_id: {artist_name: "$name"}, num_live_songs: {$sum: 1}}},
+    {$sort: {"num_live_songs": -1}},
+], {allowDiskUse: true})
+```
