@@ -53,7 +53,7 @@ def zbrcniGa(table, query):
 # zbrcniGa("audio_features", f"SELECT id, round(acousticness,4) as acousticness, round(danceability,4) as danceability, duration, round(energy,4) as energy, round(instrumentalness,4) as instrumentalness, key, round(liveness,4) as liveness, round(loudness,4) as loudness, mode, round(speechiness,4) as speechiness, round(tempo,4) as tempo, time_signature, round(valence,4) as valence FROM audio_features WHERE id in (SELECT id FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
 
 # TODO: Ova tabela nam nije potrebna, sve vec imamo u r_artist_genre, ali dobra je da se vidi koji sve zanrovi postoje i koliko ih ima
-zbrcniGa("genres", "SELECT * FROM genres")
+# zbrcniGa("genres", "SELECT * FROM genres")
 
 # zbrcniGa("r_albums_artists", f"SELECT * FROM r_albums_artists WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})")
 
@@ -62,7 +62,7 @@ zbrcniGa("genres", "SELECT * FROM genres")
 # zbrcniGa("r_artist_genre", f"SELECT * FROM r_artist_genre WHERE artist_id in (SELECT id FROM artists WHERE id in (SELECT artist_id FROM r_albums_artists WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
 
 # TODO: Ova tabela nam mozda ne treba ali je korisna za upite
-# zbrcniGa("r_track_artist", f"SELECT * FROM r_track_artist WHERE track_id in (SELECT id FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
+zbrcniGa("r_track_artist", f"SELECT * FROM r_track_artist WHERE track_id in (SELECT id FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
 
 # zbrcniGa("tracks", f"SELECT id, duration, explicit, name, popularity FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE}))") # 198s
 

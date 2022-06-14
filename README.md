@@ -42,7 +42,7 @@ db.getCollection('r_track_artist').createIndex({"artist_id": 1})
 
 ### Djordje
 - 1 - Koji su najpopularniji albumi po zanrovima?\
-Time: 8.56s
+Time: `8.56s`
 ```js
 db.r_albums_artists.createIndex({"album_id": 1})
 db.r_artist_genre.createIndex({"artist_id": 1})
@@ -88,7 +88,6 @@ Time: `826s`
 
 db.albums.aggregate([
     {$limit: 100},
-    // Adding artists to album (as an array)
     {$project: {"_id": 0, "id": 1, "name": 1, "release_date": 1}},
     {$lookup: {
         from: 'r_albums_tracks',
@@ -98,8 +97,7 @@ db.albums.aggregate([
             {$project: {"_id": 0, "track_id": 1}}
         ],
         as: 'tracks'}},
-    {$unwind: "$tracks"}, // Split an album with many artists into many of the same album with 1 artist, in order to lookup by artist_id
-    // Adding genres to album (as an array)
+    {$unwind: "$tracks"},
     {$lookup: {
         from: 'audio_features', 
         localField: 'tracks.track_id', 
@@ -115,11 +113,17 @@ db.albums.aggregate([
 ], {allowDiskUse: true})
 ```
 
-
-
 - 3 - Koji umetnik u proseku izbacuje najglasnije pesme?\
-Time: `?s`
+Time: `123s`
 ```js
+// db.audio_features.createIndex({"id": 1})
+// db.r_track_artist.createIndex({"track_id": 1})
+// db.artists.createIndex({"id": 1})
+
+db.audio_features.dropIndex({"id": 1})
+db.r_track_artist.dropIndex({"track_id": 1})
+db.artists.dropIndex({"id": 1})
+
 db.tracks.aggregate([
     {$limit: 100},
     // Adding audio features information (as an array)
@@ -153,11 +157,11 @@ db.tracks.aggregate([
 			as: 'artist_name'
         }
     },
-    {$sort: {"avg_loudness": 1}}
+    {$sort: {"avg_loudness": -1}}
 ], {allowDiskUse: true})
 ```
 - 4 - Koji umetnici su izbacili najviše pesama iz žanra 'rap'?\
-Time: `?s`
+Time: `12.3s`
 ```js
 db.r_artist_genre.createIndex({"artist_id": 1})
 db.r_track_artist.createIndex({"artist_id": 1})
@@ -195,7 +199,7 @@ db.artists.aggregate([
 ], {allowDiskUse: true})
 ```
 - 5 - Odrediti umetnike koji su najviše svojih pesama snimali uživo.\
-Time: `?s`
+Time: `1200s` (approx. - pokrenuto sa `$limit: 10`, pomnozeno sa 10)
 ```js
 // db.r_track_artist.createIndex({"artist_id": 1})
 // db.audio_features.createIndex({"id": 1})
@@ -365,7 +369,7 @@ db.albums.aggregate([
 ```
 
 - 5 - Odrediti albume sa najenergičnijim pesmama.\
-Time: `?s`
+Time: `769s`
 ```js
 // db.r_albums_tracks.createIndex({"album_id": 1})
 // db.audio_features.createIndex({"id": 1})
@@ -397,5 +401,138 @@ db.albums.aggregate([
 //     {$match: {"features.liveness": {$gt: 0.5}}},
     {$group: {_id: {album_name: "$name"}, avg_energy: {$avg: "$features.energy"}}},
     {$sort: {"avg_energy": -1}},
+], {allowDiskUse: true})
+```
+
+## Optimizacije Seme Baze
+
+Ubacivanje žanrova u kolekciju izvođača.\
+Ovime brišemo 2 kolekcije.
+
+```js
+db.r_artist_genre.createIndex({"artist_id": 1})
+
+db.artists.aggregate([
+	{$lookup: {
+		from: 'r_artist_genre',
+		localField: 'id',
+		foreignField: 'artist_id',
+		pipeline: [
+			{$project: {"_id": 0, "artist_id": 0}}
+		],
+		as: 'genres'}},
+	{$out: "artists2"}
+], {allowDiskUse: true})
+```
+
+Ubacivanje detalja o pesmi u kolekciju pesama, i u tracks id-evi artist-a.\
+Ovime brišemo kolekciju `audio_features`.
+
+```js
+db.audio_features.createIndex({"id": 1})
+db.r_track_artist.createIndex({"track_id": 1})
+
+db.tracks.aggregate([
+	{$lookup: {
+		from: 'audio_features',
+		localField: 'id',
+		foreignField: 'id',
+		pipeline: [
+			{$project: {"_id": 0, "id": 0, "instrumentalness": 0, "key": 0, "mode": 0, "speechiness": 0, "tempo": 0, "time_signature": 0, "valence": 0}}
+		],
+		as: 'audio_features'}},
+    {$unwind: "$audio_features"}, // To convert from array to object
+	{$lookup: {
+		from: 'r_track_artist',
+		localField: 'id',
+		foreignField: 'track_id',
+		pipeline: [
+			{$project: {"_id": 0, "track_id": 0}}
+		],
+		as: 'artists'}},
+	{$out: "tracks2"}
+], {allowDiskUse: true})
+```
+
+U albums id-evi artista i tracks
+```js
+db.r_albums_artists.createIndex({"album_id": 1})
+db.r_albums_tracks.createIndex({"album_id": 1})
+
+db.albums.aggregate([
+	{$lookup: {
+		from: 'r_albums_artists',
+		localField: 'id',
+		foreignField: 'album_id',
+		pipeline: [
+			{$project: {"_id": 0, "album_id": 0}}
+		],
+		as: 'artists'}},
+        {$lookup: {
+		from: 'r_albums_tracks',
+		localField: 'id',
+		foreignField: 'album_id',
+		pipeline: [
+			{$project: {"_id": 0, "album_id": 0}}
+		],
+		as: 'tracks'}}, 
+	{$out: "albums2"}
+], {allowDiskUse: true})
+```
+
+## Optimizacije Upita
+
+### Djordje
+
+- 1 :\
+Optimizacija bez indeksa - Time: `3.83s`.\
+Optimizacija sa indeksima - Time: `0.019s`.
+```js
+db.artists2.createIndex({"id": 1})
+
+// db.artists2.dropIndex({"id": 1})
+
+db.albums2.aggregate([
+    {$limit: 100},
+    {$match: {"album_type": "album"}},
+    {$lookup: {
+        from: 'artists2',
+        localField: 'artists.artist_id',
+        foreignField: 'id', 
+        pipeline: [
+            {$project: {"_id": 0, "name": 1, "genres": 1}}
+        ],
+        as: 'artists_and_genres'}},
+    {$project: {"artists":0, "tracks": 0, "release_date": 0, "_id": 0}},
+    {$unwind: "$artists_and_genres"},
+    {$unwind: "$artists_and_genres.genres"},
+    {$group: {_id: {most_popular_album: "$name", genre: "$artists_and_genres.genres.genre_id"}, max_popularity: {$max: "$popularity"}}},
+    {$sort: {"max_popularity": -1}}
+], {allowDiskUse: true})
+```
+- 2 :\
+Optimizacija bez indeksa - Time: `785s`.\
+Optimizacija sa indeksima - Time: `0.198s`.
+```js
+db.tracks2.createIndex({"id": 1})
+
+db.tracks2.dropIndex({"id": 1})
+
+db.albums2.aggregate([
+    {$limit: 100},
+    {$unwind: "$tracks"},
+    {$project: {"_id": 0, "name": 1, "tracks": 1, "release_date": 1}},
+    {$lookup: {
+        from: 'tracks2',
+        localField: 'tracks.track_id', 
+        foreignField: 'id', 
+        pipeline: [
+            {$project: {"_id": 0, "name": 1, "audio_features": 1}}
+        ],
+        as: 'tracks-info'}},
+    {$project: {"tracks": 0}},
+       {$match: {"tracks-info.audio_features.acousticness": {$gt: 0.5}}},
+       {$group: {_id: {album_name: "$name", release_date: "$release_date"}, num_acoustic_tracks: {$sum: 1}}},
+       {$sort: {"num_acoustic_tracks": -1}},
 ], {allowDiskUse: true})
 ```
