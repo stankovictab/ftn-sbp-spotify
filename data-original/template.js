@@ -1,3 +1,5 @@
+//Logicka sema podataka pre optimizacije
+
 audio_feature = {
 	"id": "2jKoVlU7VAmExKJ1Jh3w9P",
 	"acousticness": 0.1800000071525573,
@@ -98,3 +100,88 @@ album = {
 	"release_date": "954633600000",
 	"popularity": 0
 };
+
+
+
+//Logicka sema podataka nakon optimizacije
+
+albums2 = { 
+    "_id" : ObjectId("62a8845f88d8c70df07b6222"), 
+    "id" : "4EFG9ipPg0h2Yi7vg0Ople", 
+    "name" : "To You, In 2000 Years", 
+    "album_type" : "single", 
+    "release_date" : NumberLong(1601856000000), 
+    "popularity" : NumberInt(12), 
+    "artists" : [
+        {
+            "artist_id" : "4IF11U0nzFhAaLDGZH3vSx"
+        }
+    ], 
+    "tracks" : [
+        {
+            "track_id" : "6xv32JCDpIom7AIIrJzRkJ"
+        }
+    ]
+}
+
+
+artists2 = { 
+    "_id" : ObjectId("62a8846888d8c70df07d8bbe"), 
+    "name" : "Eminem", 
+    "id" : "7dGJo4pcD2V6oG8kP0tJRR", 
+    "popularity" : NumberInt(94), 
+    "followers" : NumberInt(43882754), 
+    "genres" : [
+        {
+            "genre_id" : "detroit hip hop"
+        }, 
+        {
+            "genre_id" : "hip hop"
+        }, 
+        {
+            "genre_id" : "rap"
+        }
+    ]
+}
+
+
+track2 = { 
+    "_id" : ObjectId("62a8862188d8c70df0b53d4a"), 
+    "id" : "2bNYgVK6yXzAuFD6uMWKsv", 
+    "duration" : NumberInt(151097), 
+    "explicit" : NumberInt(0), 
+    "name" : "Snow Keeps Falling", 
+    "popularity" : NumberInt(54), 
+    "audio_features" : {
+        "acousticness" : 0.922, 
+        "danceability" : 0.585, 
+        "duration" : NumberInt(151097), 
+        "energy" : 0.0359, 
+        "liveness" : 0.115, 
+        "loudness" : -22.913
+    }, 
+    "artists" : [
+        {
+            "artist_id" : "7EyQn2KSLStE6tXcdpDOXm"
+        }
+    ]
+}
+
+
+audio_features = { 
+    "_id" : ObjectId("62a8850d88d8c70df07fa6c8"), 
+    "id" : "4Bv9PjhIhp2sQE4S7dEAxR", 
+    "acousticness" : 0.775, 
+    "danceability" : 0.279, 
+    "duration" : NumberInt(157500), 
+    "energy" : 0.0331, 
+    "instrumentalness" : 0.0086, 
+    "key" : NumberInt(0), 
+    "liveness" : 0.0938, 
+    "loudness" : -21.254, 
+    "mode" : NumberInt(1), 
+    "speechiness" : 0.041, 
+    "tempo" : 98.321, 
+    "time_signature" : NumberInt(4), 
+    "valence" : 0.212
+}
