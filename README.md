@@ -4,44 +4,38 @@
 ## Setup
 
 ```shell
+sudo snap install robo3t-snap # MongoDB Query Environment
 pip install pymongo
 pip install pandas
 ```
 
-> Ne koristimo $merge i $out, radimo sve sa $lookup u query-u.
+Skup podataka je dobavljen sa [ove stranice](https://www.kaggle.com/datasets/maltegrosse/8-m-spotify-tracks-genre-audio-features) u `.sqlite` formatu.\
+Ucitavanje podataka u MongoDB bazu podataka je izvršeno u `data-original/extraction.py` skripti.
 
-> Kazemo da radimo sa limitom jer nemamo vremena da cekamo 144h
+## Inicijalna Logička Šema
 
-> imamo puno lookup-a jer merge ili out je nemoguce
+Inicijalna logička šema je prikazana u `data-original/template.js` fajlu.
 
-> lookup uvek vraca niz i uvek vraca sve elemente, ne moze da se filtrira izgleda
+## Upiti
 
-> Mozemo limit na 100, sve tako da posmatramo, jer limit raste linearno uvek
+Đorđe :
+- Koji su najpopularniji albumi po žanrovima?
+- Iz koje godine je album sa najviše akustičnih pesama?
+- Koji umetnik u proseku izbacuje najglasnije pesme?
+- Koji umetnici su izbacili najviše pesama iz žanra ‘rap’?
+- Odrediti umetnike koji su najviše svojih pesama snimali uživo.
 
-> Optimizacija ce nam biti da (posto ne mozemo da radimo out i merge) da preko pythona napravimo bolju bazu, da dokumenti imaju relevantne podatke u njima, da smanjimo, ili potpuno eliminisemo lookup-e
+Igor :
+- Koji su najpopularniji žanrovi po broju pratioca umetnika koji ih prave?
+- Koji su umetnici sa najviše eksplicitnih pesama?
+- Pesme kojeg izvođača su u proseku najviše “danceable”?
+- Koji albumi u proseku imaju najduže pesme?
+- Odrediti albume sa najenergičnijim pesmama.
 
-> $project je kao filter u find()-u, znaci 1 ili 0, sta zelimo da se prikaze nakon tog nekog aggregation stage-a
+## Neoptimizovani Upiti
 
-> U pipeline unutar $lookup-a mozemo da radimo project da selektujemo iz lookup-a sta zelimo, da ne uzimamo sve
-
-> $match je kao uslov, uglavnom se stavlja medju prvim stage-evima, mozda se smatra kao neka optimizacija
-
-> Dobar primer za optimizaciju je da se za Jakijev 2. umesto 2 lookup-a radi 1 za pesme, i da se sa njima povlace i informacije o pesmi (da ne koristimo medjutabelu)
-
-> Dok radimo ovaj development mozemo da koristimo indekse za brzi rad, zapravo trebali bi uvek da ih koristimo, ali za odbranu necemo da bi prikazali bolju optimizaciju. Pravimo ih nad svim tabelama sa kojima radimo upit, nad poljima koje referenciramo za, na primer, foreignFeild. Bitno sad, kada gledamo koliko upitu zapravo treba da se izvrsi, treba da izbrisemo sve indekse iz baze, i da pokrenemo ponovo. Kada imas vise upita u shell-u on ih sve pokrene, a rezultati su u tabovima.
-```
-db.getCollection('r_artist_genre').createIndex({"artist_id": 1})
-db.getCollection('r_track_artist').createIndex({"artist_id": 1})
-```
-
-> $limit uvek uzima tih istih prvih n torki
-
-> TODO: Pokreni svaki query ponovo i proveri da li je dobro
-
-## Queries - Before Optimizations (TODO: ?)
-
-### Djordje
-- 1 - Koji su najpopularniji albumi po zanrovima?\
+### Đorđe
+- 1 - Koji su najpopularniji albumi po žanrovima?\
 Time: `8.56s`
 ```js
 db.r_albums_artists.createIndex({"album_id": 1})
@@ -80,11 +74,11 @@ db.albums.aggregate([
 - 2 - Iz koje godine je album sa najviše akustičnih pesama?\
 Time: `826s`
 ```js
-// db.r_albums_tracks.createIndex({"album_id": 1})
-// db.audio_features.createIndex({"id": 1})
+db.r_albums_tracks.createIndex({"album_id": 1})
+db.audio_features.createIndex({"id": 1})
 
-// db.r_albums_tracks.dropIndex({"album_id": 1})
-// db.audio_features.dropIndex({"id": 1})
+db.r_albums_tracks.dropIndex({"album_id": 1})
+db.audio_features.dropIndex({"id": 1})
 
 db.albums.aggregate([
     {$limit: 100},
@@ -116,9 +110,9 @@ db.albums.aggregate([
 - 3 - Koji umetnik u proseku izbacuje najglasnije pesme?\
 Time: `123s`
 ```js
-// db.audio_features.createIndex({"id": 1})
-// db.r_track_artist.createIndex({"track_id": 1})
-// db.artists.createIndex({"id": 1})
+db.audio_features.createIndex({"id": 1})
+db.r_track_artist.createIndex({"track_id": 1})
+db.artists.createIndex({"id": 1})
 
 db.audio_features.dropIndex({"id": 1})
 db.r_track_artist.dropIndex({"track_id": 1})
@@ -201,8 +195,8 @@ db.artists.aggregate([
 - 5 - Odrediti umetnike koji su najviše svojih pesama snimali uživo.\
 Time: `1200s` (approx. - pokrenuto sa `$limit: 10`, pomnozeno sa 10)
 ```js
-// db.r_track_artist.createIndex({"artist_id": 1})
-// db.audio_features.createIndex({"id": 1})
+db.r_track_artist.createIndex({"artist_id": 1})
+db.audio_features.createIndex({"id": 1})
 
 db.r_track_artist.dropIndex({"artist_id": 1})
 db.audio_features.dropIndex({"id": 1})
@@ -239,6 +233,10 @@ db.artists.aggregate([
 - 1 - Koji su najpopularniji žanrovi po broju pratioca umetnika koji ih prave?\
 Time: `8.92s`
 ```js
+db.r_artist_genre.createIndex({"artist_id": 1})
+
+db.r_artist_genre.dropIndex({"artist_id": 1})
+
 db.artists.aggregate([
     {$limit: 100},
     // Adding audio features information (as an array)
@@ -258,6 +256,12 @@ db.artists.aggregate([
 - 2 - Koji su umetnici sa najviše eksplicitnih pesama?\
 Time: `133.05s`
 ```js
+db.r_track_artist.createIndex({"artist_id": 1})
+db.tracks.createIndex({"id": 1})
+
+db.r_track_artist.dropIndex({"artist_id": 1})
+db.tracks.dropIndex({"id": 1})
+
 db.artists.aggregate([
     {$limit: 100},
     // Show only name and id for $lookup
@@ -288,9 +292,9 @@ db.artists.aggregate([
 - 3 - Pesme kojeg izvođača su u proseku najviše "danceable"?
 Time: `126s`
 ```js
-// db.audio_features.createIndex({"id": 1})
-// db.r_track_artist.createIndex({"track_id": 1})
-// db.artists.createIndex({"id": 1})
+db.audio_features.createIndex({"id": 1})
+db.r_track_artist.createIndex({"track_id": 1})
+db.artists.createIndex({"id": 1})
 
 db.audio_features.dropIndex({"id": 1})
 db.r_track_artist.dropIndex({"track_id": 1})
@@ -319,7 +323,6 @@ db.tracks.aggregate([
         as: 'artists'}},
     {$unwind: "$artists"}, // Split an album with many genres into many of the same album with 1 genre, in order to group and max
     {$group: {_id: {artist_id: "$artists.artist_id"}, avg_danceability: {$avg: "$features.danceability"}}},
-    
     {$lookup: {
         from: 'artists', 
         localField: '_id.artist_id', 
@@ -328,9 +331,7 @@ db.tracks.aggregate([
             {$project: {"_id": 0, "name": 1}}
         ], 
         as: 'artist_name'}},
-    
     {$sort: {"avg_danceability": -1}}
-    // ...
 ], {allowDiskUse: true})
 ```
 - 4 - Koji albumi u proseku imaju najduže pesme?\
@@ -403,10 +404,12 @@ db.albums.aggregate([
 ], {allowDiskUse: true})
 ```
 
-## Optimizacije Seme Baze
+## Optimizacije Šeme Baze Podataka
 
-Ubacivanje žanrova u kolekciju izvođača.\
-Ovime brišemo 2 kolekcije.
+Za optimizaciju šeme baze podataka smo koristili šablon proširene reference,\
+da bi u što većoj meri izbegli spajanje, i da bi u dokumentima imali već spremne relevantne podatke.
+
+Pošto su žanrovi direktno povezani samo sa izvođačima, možemo ukloniti tabele `r_artist_genre` i `genres`, i relevantne podatke ubaciti u kolekciju `artists`.
 
 ```js
 db.r_artist_genre.createIndex({"artist_id": 1})
@@ -424,8 +427,7 @@ db.artists.aggregate([
 ], {allowDiskUse: true})
 ```
 
-Ubacivanje detalja o pesmi u kolekciju pesama, i u tracks id-evi artist-a.\
-Ovime brišemo kolekciju `audio_features`.
+Na sličan način su povezane i pesme sa njihovim atributima, pa možemo ukloniti kolekciju `audio_features`, i ubaciti relevantne podatke u kolekciju `tracks`.
 
 ```js
 db.audio_features.createIndex({"id": 1})
@@ -453,7 +455,8 @@ db.tracks.aggregate([
 ], {allowDiskUse: true})
 ```
 
-U albums id-evi artista i tracks
+Na kraju, da bi uklonili i preostale međutabele, možemo ukloniti kolekcije `r_albums_artists` i `r_albums_tracks`, i ubaciti relevantne podatke u kolekciju `albums`.
+
 ```js
 db.r_albums_artists.createIndex({"album_id": 1})
 db.r_albums_tracks.createIndex({"album_id": 1})
@@ -481,7 +484,11 @@ db.albums.aggregate([
 
 ## Optimizacije Upita
 
-### Djordje
+Rezultati optimizacije upita su prikazani u sledećem grafiku.
+
+![](/optimizacije.png)
+
+### Đorđe
 
 - 1 :\
 Optimizacija bez indeksa - Time: `3.83s`.\
@@ -489,7 +496,7 @@ Optimizacija sa indeksima - Time: `0.019s`.
 ```js
 db.artists2.createIndex({"id": 1})
 
-// db.artists2.dropIndex({"id": 1})
+db.artists2.dropIndex({"id": 1})
 
 db.albums2.aggregate([
     {$limit: 100},
@@ -543,6 +550,8 @@ Optimizacija sa indeksima - Time: `0.010s`.
 ```js
 db.artists2.createIndex({"id": 1})
 
+db.artists2.dropIndex({"id": 1})
+
 db.tracks2.aggregate([
     {$limit: 100},
     {$unwind: "$artists"},
@@ -569,6 +578,8 @@ Optimizacija sa indeksima - Time: `0.003s`.
 
 ```js
 db.tracks2.createIndex({"artists.artist_id": 1})
+
+db.tracks2.dropIndex({"artists.artist_id": 1})
 
 db.artists2.aggregate([
     { $limit: 100 },
