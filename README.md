@@ -530,9 +530,9 @@ db.albums2.aggregate([
         ],
         as: 'tracks-info'}},
     {$project: {"tracks": 0}},
-       {$match: {"tracks-info.audio_features.acousticness": {$gt: 0.5}}},
-       {$group: {_id: {album_name: "$name", release_date: "$release_date"}, num_acoustic_tracks: {$sum: 1}}},
-       {$sort: {"num_acoustic_tracks": -1}},
+    {$match: {"tracks-info.audio_features.acousticness": {$gt: 0.5}}},
+    {$group: {_id: {album_name: "$name", release_date: "$release_date"}, num_acoustic_tracks: {$sum: 1}}},
+    {$sort: {"num_acoustic_tracks": -1}},
 ], {allowDiskUse: true})
 ```
 

@@ -20,7 +20,7 @@ cursor = conn.cursor()
 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 print("Database description: \n", cursor.fetchall())
 
-def zbrcniGa(table, query):
+def extractData(table, query):
 	print(f"Working on '{table}'...")
 	db_df = pd.read_sql_query(f"{query}", conn)
 	# db_df.to_csv(f'{table}.csv', index=False)
@@ -46,25 +46,25 @@ def zbrcniGa(table, query):
 	del(db_df)
 	print("-----------------------------------------")
 
-# zbrcniGa("albums", f"SELECT id, name, album_type, release_date, popularity FROM albums WHERE release_date > {UNIX_DATE}")
+# extractData("albums", f"SELECT id, name, album_type, release_date, popularity FROM albums WHERE release_date > {UNIX_DATE}")
 
-# zbrcniGa("artists", f"SELECT * FROM artists WHERE id in (SELECT artist_id FROM r_albums_artists WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE}))")
+# extractData("artists", f"SELECT * FROM artists WHERE id in (SELECT artist_id FROM r_albums_artists WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE}))")
 
-# zbrcniGa("audio_features", f"SELECT id, round(acousticness,4) as acousticness, round(danceability,4) as danceability, duration, round(energy,4) as energy, round(instrumentalness,4) as instrumentalness, key, round(liveness,4) as liveness, round(loudness,4) as loudness, mode, round(speechiness,4) as speechiness, round(tempo,4) as tempo, time_signature, round(valence,4) as valence FROM audio_features WHERE id in (SELECT id FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
+# extractData("audio_features", f"SELECT id, round(acousticness,4) as acousticness, round(danceability,4) as danceability, duration, round(energy,4) as energy, round(instrumentalness,4) as instrumentalness, key, round(liveness,4) as liveness, round(loudness,4) as loudness, mode, round(speechiness,4) as speechiness, round(tempo,4) as tempo, time_signature, round(valence,4) as valence FROM audio_features WHERE id in (SELECT id FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
 
 # TODO: Ova tabela nam nije potrebna, sve vec imamo u r_artist_genre, ali dobra je da se vidi koji sve zanrovi postoje i koliko ih ima
-# zbrcniGa("genres", "SELECT * FROM genres")
+# extractData("genres", "SELECT * FROM genres")
 
-# zbrcniGa("r_albums_artists", f"SELECT * FROM r_albums_artists WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})")
+# extractData("r_albums_artists", f"SELECT * FROM r_albums_artists WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})")
 
-# zbrcniGa("r_albums_tracks", f"SELECT * FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})")
+# extractData("r_albums_tracks", f"SELECT * FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})")
 
-# zbrcniGa("r_artist_genre", f"SELECT * FROM r_artist_genre WHERE artist_id in (SELECT id FROM artists WHERE id in (SELECT artist_id FROM r_albums_artists WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
+# extractData("r_artist_genre", f"SELECT * FROM r_artist_genre WHERE artist_id in (SELECT id FROM artists WHERE id in (SELECT artist_id FROM r_albums_artists WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
 
 # TODO: Ova tabela nam mozda ne treba ali je korisna za upite
-zbrcniGa("r_track_artist", f"SELECT * FROM r_track_artist WHERE track_id in (SELECT id FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
+extractData("r_track_artist", f"SELECT * FROM r_track_artist WHERE track_id in (SELECT id FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE})))")
 
-# zbrcniGa("tracks", f"SELECT id, duration, explicit, name, popularity FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE}))") # 198s
+# extractData("tracks", f"SELECT id, duration, explicit, name, popularity FROM tracks WHERE id in (SELECT track_id FROM r_albums_tracks WHERE album_id in (SELECT id FROM albums WHERE release_date > {UNIX_DATE}))") # 198s
 
 conn.close()
 
