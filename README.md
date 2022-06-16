@@ -1,3 +1,6 @@
+# Opis
+Projekat namenjen za rad sa NoSQL bazom (u ovom slucaju MongoDB) sa ciljem izvlačenja znanja iz odabrane baze podataka. Izvršena je optimizacija logičke strukture baze primenom šablona proširene reference, kao i korišćenjem indeksa.
+
 # ftn-sbp-spotify
 [Sistemi Baza Podataka] - Predmetni Projekat - Optimizacija Dokument Orijentisane NoSQL baze podataka.
 
